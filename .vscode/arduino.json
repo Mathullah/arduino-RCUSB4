@@ -1,0 +1,4 @@
+{
+    "board": "arduino:avr:micro",
+    "sketch": "RCUSB4.ino"
+}

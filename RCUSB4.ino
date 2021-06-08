@@ -9,24 +9,6 @@
 #include <Joystick.h>
 #include "AVRPort23.h"
 
-#define CHAN1 D,0
-#define _INT1 0
-#define CHAN2 D,1
-#define _INT2 1
-#define CHAN3 D,3
-#define _INT3 3
-#define CHAN4 D,2
-#define _INT4 2
-#define RXLED B,0
-#define TXLED D,5
-
-Joystick_ Joystick(JOYSTICK_DEFAULT_REPORT_ID,JOYSTICK_TYPE_GAMEPAD,
-  0, 0,                     // Button Count, Hat Switch Count
-  true, true, false,        // X, Y, Z
-  true, true, false,        // Rx, Ry, Rz
-  false, false,             // Rudder, Throttle
-  false, false, false);     // Accelerator, Brake, Steering
-
 class CAxis
 {
 public:
@@ -41,34 +23,51 @@ private:
     bool        m_NewValueIsAvailable;
 };
 
+
+
+const uint8_t ch1_input_pin(0);
+const uint8_t ch2_input_pin(1);
+const uint8_t ch3_input_pin(3);
+const uint8_t ch4_input_pin(2);
+
+Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
+                    0, 0,                     // Button Count, Hat Switch Count
+                    true, true, false,        // X, Y, Z
+                    true, true, false,        // Rx, Ry, Rz
+                    false, false,             // Rudder, Throttle
+                    false, false, false);     // Accelerator, Brake, Steering
+
+
 CAxis xAxis;
-
-void setup()
-{
-  portMode(CHAN1, INPUT, HIGH);
-  portMode(CHAN2, INPUT, HIGH);
-  portMode(CHAN3, INPUT, HIGH);
-  portMode(CHAN4, INPUT, HIGH);
-  portMode(RXLED, OUTPUT, LOW);
-  portMode(TXLED, OUTPUT, LOW);
-  
-  Joystick.begin();
-  Joystick.setXAxisRange(2250, 750);
-  Joystick.setYAxisRange(2250, 750);
-  Joystick.setRxAxisRange(2250, 750);
-  Joystick.setRyAxisRange(2250, 750);
-  
-  attachInterrupt(_INT1, isr1, CHANGE);
-  attachInterrupt(_INT2, isr2, CHANGE);
-  attachInterrupt(_INT3, isr3, CHANGE);
-  attachInterrupt(_INT4, isr4, CHANGE);
-
-}
 
 volatile unsigned long Time[4];
 volatile unsigned int Value[4];
 volatile bool ValChanged[4];
 unsigned int NewValue[4];
+
+
+void setup()
+{
+
+    pinMode(ch1_input_pin, INPUT);
+    pinMode(ch2_input_pin, INPUT);
+    pinMode(ch3_input_pin, INPUT);
+    pinMode(ch4_input_pin, INPUT);
+
+    Joystick.begin();
+    Joystick.setXAxisRange(2250, 750);
+    Joystick.setYAxisRange(2250, 750);
+    Joystick.setRxAxisRange(2250, 750);
+    Joystick.setRyAxisRange(2250, 750);
+  
+    attachInterrupt(digitalPinToInterrupt(ch1_input_pin), isr1, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ch2_input_pin), isr2, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ch3_input_pin), isr3, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ch4_input_pin), isr4, CHANGE);
+
+}
+
+
 
 void loop()
 {   
@@ -109,7 +108,7 @@ void isr1(void)
 {
     uint32_t TimeStamp(micros());
 
-    if (portRead(CHAN1))    // assuming positive edge
+    if (static_cast<bool>(digitalRead(ch1_input_pin)))    // assuming positive edge
     {
         Time[0] = TimeStamp;
     }
@@ -130,7 +129,7 @@ void isr1(void)
 
 void isr2()
 {
-  if (portRead(CHAN2)) Time[1] = micros();
+  if (static_cast<bool>(digitalRead(ch2_input_pin))) Time[1] = micros();
   else if (micros() > Time[1])
   {
     Value[1] = (Value[1]+(micros()-Time[1]))/2;
@@ -140,7 +139,7 @@ void isr2()
 
 void isr3()
 {
-  if (portRead(CHAN3)) Time[2] = micros();
+  if (static_cast<bool>(digitalRead(ch3_input_pin))) Time[2] = micros();
   else if (micros() > Time[2])
   {
     Value[2] = (Value[2]+(micros()-Time[2]))/2;
@@ -150,7 +149,7 @@ void isr3()
 
 void isr4()
 {
-  if (portRead(CHAN4)) Time[3] = micros();
+  if (static_cast<bool>(digitalRead(ch4_input_pin))) Time[3] = micros();
   else if (micros() > Time[3])
   {
     Value[3] = (Value[3]+(micros()-Time[3]))/2;
