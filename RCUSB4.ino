@@ -14,11 +14,10 @@ class CAxis
 public:
     uint16_t Get(void);
 
-
 protected:
 
 private:
-    void        (*m_ReadPin)(void);
+    bool        (*m_ReadPin)(void);
     uint16_t    m_Value;
     bool        m_NewValueIsAvailable;
 };
@@ -40,6 +39,9 @@ Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
 
 CAxis xAxis;
 
+
+
+
 volatile unsigned long Time[4];
 volatile unsigned int Value[4];
 volatile bool ValChanged[4];
@@ -48,18 +50,28 @@ unsigned int NewValue[4];
 
 void setup()
 {
+    /* Test code for check how to deal with lambda expressions */
+    typedef bool (*func_t)(void);
 
-    pinMode(ch1_input_pin, INPUT);
-    pinMode(ch2_input_pin, INPUT);
-    pinMode(ch3_input_pin, INPUT);
-    pinMode(ch4_input_pin, INPUT);
+    auto getInput = []() { return static_cast<bool>(digitalRead(ch1_input_pin)); };
+
+    func_t getter(getInput);
+
+    getter();
+
+    /* Interrupt inputs shall always be tied to a defined state! */
+    pinMode(ch1_input_pin, INPUT_PULLUP);
+    pinMode(ch2_input_pin, INPUT_PULLUP);
+    pinMode(ch3_input_pin, INPUT_PULLUP);
+    pinMode(ch4_input_pin, INPUT_PULLUP);
 
     Joystick.begin();
     Joystick.setXAxisRange(2250, 750);
     Joystick.setYAxisRange(2250, 750);
     Joystick.setRxAxisRange(2250, 750);
     Joystick.setRyAxisRange(2250, 750);
-  
+
+
     attachInterrupt(digitalPinToInterrupt(ch1_input_pin), isr1, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ch2_input_pin), isr2, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ch3_input_pin), isr3, CHANGE);
@@ -68,9 +80,8 @@ void setup()
 }
 
 
-
 void loop()
-{   
+{
     if (ValChanged[0])
     {
         /* Another filter function - Why filtering twice? */
@@ -108,7 +119,9 @@ void isr1(void)
 {
     uint32_t TimeStamp(micros());
 
-    if (static_cast<bool>(digitalRead(ch1_input_pin)))    // assuming positive edge
+    auto getInput = []() { return static_cast<bool>(digitalRead(ch1_input_pin)); };
+
+    if (getInput())    // assuming positive edge
     {
         Time[0] = TimeStamp;
     }
