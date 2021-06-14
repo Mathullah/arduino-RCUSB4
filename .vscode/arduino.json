@@ -1,4 +1,5 @@
 {
     "board": "arduino:avr:micro",
+    "port": "/dev/tty.usbmodemHIDEC1",
     "sketch": "RCUSB4.ino"
 }

@@ -12,14 +12,23 @@
 class CAxis
 {
 public:
-    uint16_t Get(void);
+    typedef bool (*func_t)(void);
 
+    uint16_t    Get(void);
+    void        Isr(void);
+    
+    CAxis(const func_t GetPinState);
 protected:
 
 private:
-    bool        (*m_ReadPin)(void);
-    uint16_t    m_Value;
-    bool        m_NewValueIsAvailable;
+    func_t      m_GetPinState;
+    uint16_t    m_PulseTime;
+
+    volatile int32_t   m_PositiveEdge;
+    volatile int32_t   m_NegativeEdge;
+    volatile int32_t   m_Value;
+
+    volatile bool      m_NewValueIsAvailable;
 };
 
 
@@ -36,8 +45,9 @@ Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
                     false, false,             // Rudder, Throttle
                     false, false, false);     // Accelerator, Brake, Steering
 
+auto getCh1Input = []() { return static_cast<bool>(digitalRead(ch1_input_pin)); };
 
-CAxis xAxis;
+CAxis xAxis(getCh1Input);
 
 
 
@@ -55,41 +65,48 @@ void setup()
 
     auto getInput = []() { return static_cast<bool>(digitalRead(ch1_input_pin)); };
 
-    func_t getter(getInput);
+    func_t Getter(getInput);
 
-    getter();
+    Serial.begin(19200);
+
+    while (!Serial) {
+      ; // Warte, bis die serielle Schnittstelle verbunden ist. Wird für native USBs benötigt.
+    }
 
     /* Interrupt inputs shall always be tied to a defined state! */
     pinMode(ch1_input_pin, INPUT_PULLUP);
-    pinMode(ch2_input_pin, INPUT_PULLUP);
-    pinMode(ch3_input_pin, INPUT_PULLUP);
-    pinMode(ch4_input_pin, INPUT_PULLUP);
+    //pinMode(ch2_input_pin, INPUT_PULLUP);
+    //pinMode(ch3_input_pin, INPUT_PULLUP);
+    //pinMode(ch4_input_pin, INPUT_PULLUP);
 
+/*
     Joystick.begin();
     Joystick.setXAxisRange(2250, 750);
     Joystick.setYAxisRange(2250, 750);
     Joystick.setRxAxisRange(2250, 750);
     Joystick.setRyAxisRange(2250, 750);
+*/
 
+    auto Channel1Event = []() { xAxis.Isr(); };
 
-    attachInterrupt(digitalPinToInterrupt(ch1_input_pin), isr1, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(ch2_input_pin), isr2, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(ch3_input_pin), isr3, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(ch4_input_pin), isr4, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ch1_input_pin), Channel1Event, CHANGE);
+    //attachInterrupt(digitalPinToInterrupt(ch2_input_pin), isr2, CHANGE);
+    //attachInterrupt(digitalPinToInterrupt(ch3_input_pin), isr3, CHANGE);
+    //attachInterrupt(digitalPinToInterrupt(ch4_input_pin), isr4, CHANGE);
 
 }
 
 
 void loop()
 {
+    /*
     if (ValChanged[0])
     {
-        /* Another filter function - Why filtering twice? */
         NewValue[0] = (NewValue[0] + Value[0]) / 2;
-
         Joystick.setXAxis(NewValue[0]);
         ValChanged[0] = false;
     }
+    */
 
   if (ValChanged[1])
   {
@@ -105,23 +122,23 @@ void loop()
     ValChanged[2] = false;
   }
   
-   if (ValChanged[3])
+  if (ValChanged[3])
   {
     NewValue[3] = (NewValue[3]+Value[3])/2;
     Joystick.setRyAxis(NewValue[3]);
     ValChanged[3] = false;
   }
-  
-  delay(8);
+
+  Serial.print("Output of channel 1: ");
+  Serial.println(xAxis.Get());
+  delay(500);
 }
 
 void isr1(void)
 {
     uint32_t TimeStamp(micros());
 
-    auto getInput = []() { return static_cast<bool>(digitalRead(ch1_input_pin)); };
-
-    if (getInput())    // assuming positive edge
+    if (static_cast<bool>(digitalRead(ch1_input_pin)))    // assuming positive edge
     {
         Time[0] = TimeStamp;
     }
@@ -168,4 +185,52 @@ void isr4()
     Value[3] = (Value[3]+(micros()-Time[3]))/2;
     ValChanged[3] = true;
   }
+}
+
+
+CAxis::CAxis(const func_t GetPinState) :
+    m_GetPinState(GetPinState)
+{
+    if(m_GetPinState != nullptr)
+    {
+        Serial.println("valid get function!");
+    } 
+}
+
+void CAxis::Isr(void)
+{
+
+    int32_t TimeStamp(micros());
+
+    if (m_GetPinState())    // assuming positive edge
+    {
+        m_PositiveEdge = TimeStamp;
+    }
+    else if (TimeStamp > m_PositiveEdge)   // assuming negative edge and some time was passing since positive edge
+    {
+        /* This is a simple mean value filter. But the division
+           should not be done in an interrupt context.
+           TimeStamp - Time[0] represent the pulse width
+        */
+        m_Value = (m_Value + (TimeStamp - m_PositiveEdge)) / 2;
+
+        m_NewValueIsAvailable = true;
+    } else
+    {
+        // nothing to do.
+    }
+}
+
+uint16_t CAxis::Get(void)
+{
+
+    if (m_NewValueIsAvailable)
+    {
+        /* Another filter function - Why filtering twice? */
+        const int32_t LastPulseLength(m_PulseTime);
+        m_PulseTime = static_cast<uint16_t>((LastPulseLength + m_Value) / 2);
+        m_NewValueIsAvailable = false;
+    }
+
+    return m_PulseTime;
 }
