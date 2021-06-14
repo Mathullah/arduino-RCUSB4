@@ -21,27 +21,11 @@
 #define TXLED D,5
 
 Joystick_ Joystick(JOYSTICK_DEFAULT_REPORT_ID,JOYSTICK_TYPE_GAMEPAD,
-  0, 0,                     // Button Count, Hat Switch Count
-  true, true, false,        // X, Y, Z
-  true, true, false,        // Rx, Ry, Rz
-  false, false,             // Rudder, Throttle
-  false, false, false);     // Accelerator, Brake, Steering
-
-class CAxis
-{
-public:
-    uint16_t Get(void);
-
-
-protected:
-
-private:
-    void        (*m_ReadPin)(void);
-    uint16_t    m_Value;
-    bool        m_NewValueIsAvailable;
-};
-
-CAxis xAxis;
+  0, 0,                 // Button Count, Hat Switch Count
+  true, true, false,  // X, Y, Z
+  true, true, false,  // Rx, Ry, Rz
+  false, false,          // Rudder, Throttle
+  false, false, false);    // Accelerator, Brake, Steering
 
 void setup()
 {
@@ -62,7 +46,6 @@ void setup()
   attachInterrupt(_INT2, isr2, CHANGE);
   attachInterrupt(_INT3, isr3, CHANGE);
   attachInterrupt(_INT4, isr4, CHANGE);
-
 }
 
 volatile unsigned long Time[4];
@@ -72,14 +55,12 @@ unsigned int NewValue[4];
 
 void loop()
 {   
-    if (ValChanged[0])
-    {
-        /* Another filter function - Why filtering twice? */
-        NewValue[0] = (NewValue[0] + Value[0]) / 2;
-
-        Joystick.setXAxis(NewValue[0]);
-        ValChanged[0] = false;
-    }
+  if (ValChanged[0])
+  {
+    NewValue[0] = (NewValue[0]+Value[0])/2;
+    Joystick.setXAxis(NewValue[0]);
+    ValChanged[0] = false;
+  }
 
   if (ValChanged[1])
   {
@@ -105,27 +86,14 @@ void loop()
   delay(8);
 }
 
-void isr1(void)
+void isr1()
 {
-    uint32_t TimeStamp(micros());
-
-    if (portRead(CHAN1))    // assuming positive edge
-    {
-        Time[0] = TimeStamp;
-    }
-    else if (TimeStamp > Time[0])   // assuming negative edge
-    {
-        /* This is a simple mean value filter. But the division
-           should not be done in an interrupt context.
-           TimeStamp - Time[0] represent the pulse width
-        */
-        Value[0] = (Value[0] + (TimeStamp - Time[0])) / 2;
-
-        ValChanged[0] = true;
-    } else
-    {
-        // nothign to do (positive edge and negative edge in t)
-    }
+  if (portRead(CHAN1)) Time[0] = micros();
+  else if (micros() > Time[0])
+  {
+    Value[0] = (Value[0]+(micros()-Time[0]))/2;
+    ValChanged[0] = true;
+  }
 }
 
 void isr2()
