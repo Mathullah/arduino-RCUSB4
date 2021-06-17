@@ -37,14 +37,14 @@ const uint8_t ch2_input_pin(1);
 const uint8_t ch3_input_pin(3);
 const uint8_t ch4_input_pin(2);
 
-/*
+
 Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
                     0, 0,                     // Button Count, Hat Switch Count
                     true, true, false,        // X, Y, Z
                     true, true, false,        // Rx, Ry, Rz
                     false, false,             // Rudder, Throttle
                     false, false, false);     // Accelerator, Brake, Steering
-*/
+
 
 auto getCh1Input = []() { return static_cast<bool>(digitalRead(ch1_input_pin)); };
 CAxis xAxis(getCh1Input);
@@ -54,24 +54,24 @@ CAxis yAxis(getCh1Input);
 
 void setup()
 {
-
+/*
     Serial.begin(19200);
 
     while (!Serial) {
       ; // wait until connected
     }
-
+*/
     /* Interrupt inputs shall always be tied to a defined state! */
     pinMode(ch1_input_pin, INPUT_PULLUP);
     pinMode(ch2_input_pin, INPUT_PULLUP);
 
-/*
+
     Joystick.begin();
     Joystick.setXAxisRange(2250, 750);
     Joystick.setYAxisRange(2250, 750);
     Joystick.setRxAxisRange(2250, 750);
     Joystick.setRyAxisRange(2250, 750);
-*/
+
 
     attachInterrupt(digitalPinToInterrupt(ch1_input_pin), []() { xAxis.Isr(); }, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ch2_input_pin), []() { yAxis.Isr(); }, CHANGE);
@@ -82,13 +82,29 @@ void setup()
 void loop()
 {
 
+    int16_t  Channel1(xAxis.Get());
+    int16_t  Channel2(yAxis.Get());
+    int16_t  Channel3(1500);
+    int16_t  Channel4(1500);
+
+    Joystick.setXAxis(Channel1);
+    Joystick.setYAxis(Channel2);
+    Joystick.setRxAxis(Channel3);
+    Joystick.setRyAxis(Channel4);
+
+    delay(10);
+
+
+/*
   Serial.print("Output of channel 1: ");
-  Serial.println(xAxis.Get());
+  Serial.println(Channel1);
 
   Serial.print("Output of channel 2: ");
-  Serial.println(yAxis.Get());
+  Serial.println(Channel2);
 
   delay(1000);
+  */
+
 }
 
 
