@@ -1,5 +1,10 @@
 /* 
+ * RCUSB Interface
+ * Modified version
+ * Copyright (c) 2021, Mathias Felix
+ * 
  * kekse23.de RCUSB
+ * Original version
  * Copyright (c) 2019, Nicholas Regitz
  * 
  * Diese Datei ist Lizensiert unter der Creative Commons 4.0 CC BY-NC-SA
@@ -11,32 +16,23 @@
 class CAxis
 {
 public:
-    typedef bool (*func_t)(void);
-
     uint16_t    Get(void);
-    void        Isr(void);
+    void        Isr(const uint8_t Input, const uint32_t timestamp);
 
-    CAxis(const func_t GetPinState);
 protected:
-
 private:
-    func_t      m_GetPinState;
-    uint16_t    m_PulseTime;
-
-    volatile int32_t   m_PositiveEdge;
-    volatile int32_t   m_NegativeEdge;
-    volatile int32_t   m_Value;
-
-    volatile bool      m_NewValueIsAvailable;
+    uint16_t         m_PulseTime;
+    volatile int32_t m_PositiveEdge;
+    volatile int32_t m_NegativeEdge;
+    volatile int32_t m_Value;
+    volatile bool    m_NewValueIsAvailable;
 };
 
 
-
-const uint8_t ch1_input_pin(0);
-const uint8_t ch2_input_pin(1);
-const uint8_t ch3_input_pin(3);
-const uint8_t ch4_input_pin(2);
-
+const uint8_t InputCH1(0);
+const uint8_t InputCH2(1);
+const uint8_t InputCH3(3);
+const uint8_t InputCH4(2);
 
 Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
                     0, 0,                     // Button Count, Hat Switch Count
@@ -45,26 +41,18 @@ Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
                     false, false,             // Rudder, Throttle
                     false, false, false);     // Accelerator, Brake, Steering
 
-
-auto getCh1Input = []() { return static_cast<bool>(digitalRead(ch1_input_pin)); };
-CAxis xAxis(getCh1Input);
-auto getCh2Input = []() { return static_cast<bool>(digitalRead(ch2_input_pin)); };
-CAxis yAxis(getCh1Input);
+CAxis xAxis;
+CAxis yAxis;
+CAxis RxAxis;
+CAxis RyAxis;
 
 
 void setup()
 {
-/*
-    Serial.begin(19200);
-
-    while (!Serial) {
-      ; // wait until connected
-    }
-*/
-    /* Interrupt inputs shall always be tied to a defined state! */
-    pinMode(ch1_input_pin, INPUT_PULLUP);
-    pinMode(ch2_input_pin, INPUT_PULLUP);
-
+    pinMode(InputCH1, INPUT_PULLUP);
+    pinMode(InputCH2, INPUT_PULLUP);
+    pinMode(InputCH3, INPUT_PULLUP);
+    pinMode(InputCH4, INPUT_PULLUP);
 
     Joystick.begin();
     Joystick.setXAxisRange(2250, 750);
@@ -72,10 +60,10 @@ void setup()
     Joystick.setRxAxisRange(2250, 750);
     Joystick.setRyAxisRange(2250, 750);
 
-
-    attachInterrupt(digitalPinToInterrupt(ch1_input_pin), []() { xAxis.Isr(); }, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(ch2_input_pin), []() { yAxis.Isr(); }, CHANGE);
-
+    attachInterrupt(digitalPinToInterrupt(InputCH1), []() {xAxis.Isr(digitalRead(InputCH1), micros());}, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(InputCH2), []() {yAxis.Isr(digitalRead(InputCH2), micros());}, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(InputCH3), []() {RxAxis.Isr(digitalRead(InputCH3), micros());}, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(InputCH4), []() {RyAxis.Isr(digitalRead(InputCH4), micros());}, CHANGE);
 }
 
 
@@ -84,8 +72,8 @@ void loop()
 
     int16_t  Channel1(xAxis.Get());
     int16_t  Channel2(yAxis.Get());
-    int16_t  Channel3(1500);
-    int16_t  Channel4(1500);
+    int16_t  Channel3(RxAxis.Get());
+    int16_t  Channel4(RyAxis.Get());
 
     Joystick.setXAxis(Channel1);
     Joystick.setYAxis(Channel2);
@@ -94,42 +82,19 @@ void loop()
 
     delay(10);
 
-
-/*
-  Serial.print("Output of channel 1: ");
-  Serial.println(Channel1);
-
-  Serial.print("Output of channel 2: ");
-  Serial.println(Channel2);
-
-  delay(1000);
-  */
-
 }
 
-
-CAxis::CAxis(const func_t GetPinState) :
-    m_GetPinState(GetPinState)
+void CAxis::Isr(const uint8_t Input, const uint32_t timestamp)
 {
+    int32_t TimeStamp(timestamp);
 
-}
-
-void CAxis::Isr(void)
-{
-
-    int32_t TimeStamp(micros());
-
-    if (m_GetPinState()) 
+    if (static_cast<bool>(Input)) 
     {
         m_PositiveEdge = TimeStamp;
     }
     else if (TimeStamp > m_PositiveEdge)
     {
-        /* This is a simple mean value filter. But the division
-           should not be done in an interrupt context.
-        */
         m_Value = (m_Value + (TimeStamp - m_PositiveEdge)) / 2;
-
         m_NewValueIsAvailable = true;
     } else
     {
@@ -142,7 +107,7 @@ uint16_t CAxis::Get(void)
     if (m_NewValueIsAvailable)
     {
         const int32_t LastPulseLength(m_PulseTime);
-        m_PulseTime = static_cast<uint16_t>((LastPulseLength + m_Value) / 2);       // mean value
+        m_PulseTime = static_cast<uint16_t>((LastPulseLength + m_Value) / 2);
         m_NewValueIsAvailable = false;
     }
     return m_PulseTime;
