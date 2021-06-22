@@ -1,12 +1,12 @@
-/* 
+/*
  * RCUSB Interface
  * Modified version
  * Copyright (c) 2021, Mathias Felix
- * 
+ *
  * kekse23.de RCUSB
  * Original version
  * Copyright (c) 2019, Nicholas Regitz
- * 
+ *
  * Diese Datei ist Lizensiert unter der Creative Commons 4.0 CC BY-NC-SA
  * https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
  */
