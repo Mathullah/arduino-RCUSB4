@@ -1,7 +1,7 @@
 /*
  * RCUSB Interface
  * Modified version
- * Copyright (c) 2021, Mathias Felix
+ * Copyright (c) 2022, Mathias Felix
  *
  * kekse23.de RCUSB
  * Original version
@@ -13,11 +13,21 @@
 
 #include <Joystick.h>
 
-class CAxis
+class RcInput
 {
 public:
-    uint16_t    Get(void);
-    void        Isr(const uint8_t Input, const uint32_t timestamp);
+    RcInput() :
+        m_PulseTime{},
+        m_PositiveEdge{},
+        m_NegativeEdge{},
+        m_Value{},
+        m_NewValueIsAvailable{}
+    {
+
+    }
+
+    uint16_t    Get();
+    void        Isr(uint8_t const Input, uint32_t const TimeStamp);
 
 protected:
 private:
@@ -29,10 +39,13 @@ private:
 };
 
 
-const uint8_t InputCH1(0);
-const uint8_t InputCH2(1);
-const uint8_t InputCH3(3);
-const uint8_t InputCH4(2);
+static constexpr uint8_t InputPinCh_1{0};
+static constexpr uint8_t InputPinCh_2{1};
+static constexpr uint8_t InputPinCh_3{3};
+static constexpr uint8_t InputPinCh_4{2};
+
+static constexpr uint16_t AxisUpperBound{2250U};
+static constexpr uint16_t AxisLowerBound{750U};
 
 Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
                     0, 0,                     // Button Count, Hat Switch Count
@@ -41,60 +54,57 @@ Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
                     false, false,             // Rudder, Throttle
                     false, false, false);     // Accelerator, Brake, Steering
 
-CAxis xAxis;
-CAxis yAxis;
-CAxis RxAxis;
-CAxis RyAxis;
+RcInput RcChannel_X;
+RcInput RcChannel_Y;
+RcInput RcChannel_Rx;
+RcInput RcChannel_Ry;
 
 
 void setup()
 {
-    pinMode(InputCH1, INPUT_PULLUP);
-    pinMode(InputCH2, INPUT_PULLUP);
-    pinMode(InputCH3, INPUT_PULLUP);
-    pinMode(InputCH4, INPUT_PULLUP);
+    pinMode(InputPinCh_1, INPUT_PULLUP);
+    pinMode(InputPinCh_2, INPUT_PULLUP);
+    pinMode(InputPinCh_3, INPUT_PULLUP);
+    pinMode(InputPinCh_4, INPUT_PULLUP);
 
     Joystick.begin();
-    Joystick.setXAxisRange(2250, 750);
-    Joystick.setYAxisRange(2250, 750);
-    Joystick.setRxAxisRange(2250, 750);
-    Joystick.setRyAxisRange(2250, 750);
 
-    attachInterrupt(digitalPinToInterrupt(InputCH1), []() {xAxis.Isr(digitalRead(InputCH1), micros());}, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(InputCH2), []() {yAxis.Isr(digitalRead(InputCH2), micros());}, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(InputCH3), []() {RxAxis.Isr(digitalRead(InputCH3), micros());}, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(InputCH4), []() {RyAxis.Isr(digitalRead(InputCH4), micros());}, CHANGE);
+    Joystick.setXAxisRange(AxisUpperBound, AxisLowerBound);
+    Joystick.setYAxisRange(AxisUpperBound, AxisLowerBound);
+    Joystick.setRxAxisRange(AxisUpperBound, AxisLowerBound);
+    Joystick.setRyAxisRange(AxisUpperBound, AxisLowerBound);
+
+    /* Config interrupts with corresponding callback functions (lambdas) */
+    attachInterrupt(digitalPinToInterrupt(InputPinCh_1), []() {RcChannel_X.Isr(digitalRead(InputPinCh_1), micros());}, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(InputPinCh_2), []() {RcChannel_Y.Isr(digitalRead(InputPinCh_2), micros());}, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(InputPinCh_3), []() {RcChannel_Rx.Isr(digitalRead(InputPinCh_3), micros());}, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(InputPinCh_4), []() {RcChannel_Ry.Isr(digitalRead(InputPinCh_4), micros());}, CHANGE);
 }
 
 
 void loop()
 {
-
-    int16_t  Channel1(xAxis.Get());
-    int16_t  Channel2(yAxis.Get());
-    int16_t  Channel3(RxAxis.Get());
-    int16_t  Channel4(RyAxis.Get());
-
-    Joystick.setXAxis(Channel1);
-    Joystick.setYAxis(Channel2);
-    Joystick.setRxAxis(Channel3);
-    Joystick.setRyAxis(Channel4);
+    /* Get value from each channel and pass it to the joystick */
+    Joystick.setXAxis(RcChannel_X.Get());
+    Joystick.setYAxis(RcChannel_Y.Get());
+    Joystick.setRxAxis(RcChannel_Rx.Get());
+    Joystick.setRyAxis(RcChannel_Ry.Get());
 
     delay(10);
 
 }
 
-void CAxis::Isr(const uint8_t Input, const uint32_t timestamp)
+void RcInput::Isr(uint8_t const Input, uint32_t const TimeStamp)
 {
-    int32_t TimeStamp(timestamp);
+    auto const Time{static_cast<int32_t>(TimeStamp)};
 
-    if (static_cast<bool>(Input)) 
+    if (static_cast<bool>(Input)) // capture positive edge
     {
-        m_PositiveEdge = TimeStamp;
+        m_PositiveEdge = Time;
     }
-    else if (TimeStamp > m_PositiveEdge)
+    else if (Time > m_PositiveEdge)  // capture negative edge (at least 1us later)
     {
-        m_Value = (m_Value + (TimeStamp - m_PositiveEdge)) / 2;
+        m_Value = (m_Value + (Time - m_PositiveEdge)) / 2;
         m_NewValueIsAvailable = true;
     } else
     {
@@ -102,11 +112,11 @@ void CAxis::Isr(const uint8_t Input, const uint32_t timestamp)
     }
 }
 
-uint16_t CAxis::Get(void)
+uint16_t RcInput::Get()
 {
     if (m_NewValueIsAvailable)
     {
-        const int32_t LastPulseLength(m_PulseTime);
+        auto const LastPulseLength{m_PulseTime};
         m_PulseTime = static_cast<uint16_t>((LastPulseLength + m_Value) / 2);
         m_NewValueIsAvailable = false;
     }
