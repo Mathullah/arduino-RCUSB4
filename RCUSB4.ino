@@ -39,10 +39,10 @@ private:
 };
 
 
-static constexpr uint8_t InputPinCh_1{0};
-static constexpr uint8_t InputPinCh_2{1};
-static constexpr uint8_t InputPinCh_3{3};
-static constexpr uint8_t InputPinCh_4{2};
+static constexpr uint8_t InputPinCh_1{1};
+static constexpr uint8_t InputPinCh_2{0};
+static constexpr uint8_t InputPinCh_3{2};
+static constexpr uint8_t InputPinCh_4{3};
 
 static constexpr uint16_t AxisUpperBound{2250U};
 static constexpr uint16_t AxisLowerBound{750U};
