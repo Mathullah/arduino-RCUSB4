@@ -1,127 +1,124 @@
-/* 
+/*
+ * RCUSB Interface
+ * Modified version
+ * Copyright (c) 2022, Mathias Felix
+ *
  * kekse23.de RCUSB
+ * Original version
  * Copyright (c) 2019, Nicholas Regitz
- * 
+ *
  * Diese Datei ist Lizensiert unter der Creative Commons 4.0 CC BY-NC-SA
  * https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
  */
 
 #include <Joystick.h>
-#include "AVRPort23.h"
 
-#define CHAN1 D,0
-#define _INT1 0
-#define CHAN2 D,1
-#define _INT2 1
-#define CHAN3 D,3
-#define _INT3 3
-#define CHAN4 D,2
-#define _INT4 2
-#define RXLED B,0
-#define TXLED D,5
+class RcInput
+{
+public:
+    RcInput() :
+        m_PulseTime{},
+        m_PositiveEdge{},
+        m_NegativeEdge{},
+        m_Value{},
+        m_NewValueIsAvailable{}
+    {
 
-Joystick_ Joystick(JOYSTICK_DEFAULT_REPORT_ID,JOYSTICK_TYPE_GAMEPAD,
-  0, 0,                 // Button Count, Hat Switch Count
-  true, true, false,  // X, Y, Z
-  true, true, false,  // Rx, Ry, Rz
-  false, false,          // Rudder, Throttle
-  false, false, false);    // Accelerator, Brake, Steering
+    }
+
+    uint16_t    Get();
+    void        Isr(uint8_t const Input, uint32_t const TimeStamp);
+
+protected:
+private:
+    uint16_t         m_PulseTime;
+    volatile int32_t m_PositiveEdge;
+    volatile int32_t m_NegativeEdge;
+    volatile int32_t m_Value;
+    volatile bool    m_NewValueIsAvailable;
+};
+
+
+static constexpr uint8_t InputPinCh_1{1};
+static constexpr uint8_t InputPinCh_2{0};
+static constexpr uint8_t InputPinCh_3{2};
+static constexpr uint8_t InputPinCh_4{3};
+
+static constexpr uint16_t AxisUpperBound{2250U};
+static constexpr uint16_t AxisLowerBound{750U};
+
+Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
+                    0, 0,                     // Button Count, Hat Switch Count
+                    true, true, false,        // X, Y, Z
+                    true, true, false,        // Rx, Ry, Rz
+                    false, false,             // Rudder, Throttle
+                    false, false, false);     // Accelerator, Brake, Steering
+
+RcInput RcChannel_X;
+RcInput RcChannel_Y;
+RcInput RcChannel_Rx;
+RcInput RcChannel_Ry;
+
 
 void setup()
 {
-  portMode(CHAN1, INPUT, HIGH);
-  portMode(CHAN2, INPUT, HIGH);
-  portMode(CHAN3, INPUT, HIGH);
-  portMode(CHAN4, INPUT, HIGH);
-  portMode(RXLED, OUTPUT, LOW);
-  portMode(TXLED, OUTPUT, LOW);
-  
-  Joystick.begin();
-  Joystick.setXAxisRange(2250, 750);
-  Joystick.setYAxisRange(2250, 750);
-  Joystick.setRxAxisRange(2250, 750);
-  Joystick.setRyAxisRange(2250, 750);
-  
-  attachInterrupt(_INT1, isr1, CHANGE);
-  attachInterrupt(_INT2, isr2, CHANGE);
-  attachInterrupt(_INT3, isr3, CHANGE);
-  attachInterrupt(_INT4, isr4, CHANGE);
+    pinMode(InputPinCh_1, INPUT_PULLUP);
+    pinMode(InputPinCh_2, INPUT_PULLUP);
+    pinMode(InputPinCh_3, INPUT_PULLUP);
+    pinMode(InputPinCh_4, INPUT_PULLUP);
+
+    Joystick.begin();
+
+    Joystick.setXAxisRange(AxisUpperBound, AxisLowerBound);
+    Joystick.setYAxisRange(AxisUpperBound, AxisLowerBound);
+    Joystick.setRxAxisRange(AxisUpperBound, AxisLowerBound);
+    Joystick.setRyAxisRange(AxisUpperBound, AxisLowerBound);
+
+    /* Config interrupts with corresponding callback functions (lambdas) */
+    attachInterrupt(digitalPinToInterrupt(InputPinCh_1), []() {RcChannel_X.Isr(digitalRead(InputPinCh_1), micros());}, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(InputPinCh_2), []() {RcChannel_Y.Isr(digitalRead(InputPinCh_2), micros());}, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(InputPinCh_3), []() {RcChannel_Rx.Isr(digitalRead(InputPinCh_3), micros());}, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(InputPinCh_4), []() {RcChannel_Ry.Isr(digitalRead(InputPinCh_4), micros());}, CHANGE);
 }
 
-volatile unsigned long Time[4];
-volatile unsigned int Value[4];
-volatile bool ValChanged[4];
-unsigned int NewValue[4];
 
 void loop()
-{   
-  if (ValChanged[0])
-  {
-    NewValue[0] = (NewValue[0]+Value[0])/2;
-    Joystick.setXAxis(NewValue[0]);
-    ValChanged[0] = false;
-  }
+{
+    /* Get value from each channel and pass it to the joystick */
+    Joystick.setXAxis(RcChannel_X.Get());
+    Joystick.setYAxis(RcChannel_Y.Get());
+    Joystick.setRxAxis(RcChannel_Rx.Get());
+    Joystick.setRyAxis(RcChannel_Ry.Get());
 
-  if (ValChanged[1])
-  {
-    NewValue[1] = (NewValue[1]+Value[1])/2;
-    Joystick.setYAxis(NewValue[1]);
-    ValChanged[1] = false;
-  }
-  
-   if (ValChanged[2])
-  {
-    NewValue[2] = (NewValue[2]+Value[2])/2;
-    Joystick.setRxAxis(NewValue[2]);
-    ValChanged[2] = false;
-  }
-  
-   if (ValChanged[3])
-  {
-    NewValue[3] = (NewValue[3]+Value[3])/2;
-    Joystick.setRyAxis(NewValue[3]);
-    ValChanged[3] = false;
-  }
-  
-  delay(8);
+    delay(10);
+
 }
 
-void isr1()
+void RcInput::Isr(uint8_t const Input, uint32_t const TimeStamp)
 {
-  if (portRead(CHAN1)) Time[0] = micros();
-  else if (micros() > Time[0])
-  {
-    Value[0] = (Value[0]+(micros()-Time[0]))/2;
-    ValChanged[0] = true;
-  }
+    auto const Time{static_cast<int32_t>(TimeStamp)};
+
+    if (static_cast<bool>(Input)) // capture positive edge
+    {
+        m_PositiveEdge = Time;
+    }
+    else if (Time > m_PositiveEdge)  // capture negative edge (at least 1us later)
+    {
+        m_Value = (m_Value + (Time - m_PositiveEdge)) / 2;
+        m_NewValueIsAvailable = true;
+    } else
+    {
+        // nothing to do.
+    }
 }
 
-void isr2()
+uint16_t RcInput::Get()
 {
-  if (portRead(CHAN2)) Time[1] = micros();
-  else if (micros() > Time[1])
-  {
-    Value[1] = (Value[1]+(micros()-Time[1]))/2;
-    ValChanged[1] = true;
-  }
-}
-
-void isr3()
-{
-  if (portRead(CHAN3)) Time[2] = micros();
-  else if (micros() > Time[2])
-  {
-    Value[2] = (Value[2]+(micros()-Time[2]))/2;
-    ValChanged[2] = true;
-  }
-}
-
-void isr4()
-{
-  if (portRead(CHAN4)) Time[3] = micros();
-  else if (micros() > Time[3])
-  {
-    Value[3] = (Value[3]+(micros()-Time[3]))/2;
-    ValChanged[3] = true;
-  }
+    if (m_NewValueIsAvailable)
+    {
+        auto const LastPulseLength{m_PulseTime};
+        m_PulseTime = static_cast<uint16_t>((LastPulseLength + m_Value) / 2);
+        m_NewValueIsAvailable = false;
+    }
+    return m_PulseTime;
 }
