@@ -536,7 +536,21 @@
                 "__ATOMIC_RELEASE=3",
                 "__BUILTIN_AVR_FMUL=1",
                 "USBCON"
-            ]
+            ],
+            "configurationProvider": "ms-vscode.cmake-tools"
+        },
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "macFrameworkPath": [
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk/System/Library/Frameworks"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++17"
         }
     ]
 }

@@ -5,8 +5,8 @@
 
 #if defined(AVR) && defined(ARDUINO_AVR_MICRO)
     #include <Arduino.h>
-#elif
-    #Error "Undefined compiler / build environment"
+#else
+    #include <cstdint>
 #endif
 
 class RcPwm
