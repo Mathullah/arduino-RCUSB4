@@ -22,7 +22,7 @@ static constexpr uint8_t InputPinCh_4{3};
 static constexpr uint16_t AxisUpperBound{2250U};
 static constexpr uint16_t AxisLowerBound{750U};
 
-Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_GAMEPAD,
+Joystick_ Joystick( JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_JOYSTICK,
                     0, 0,                     // Button Count, Hat Switch Count
                     true, true, false,        // X, Y, Z
                     true, true, false,        // Rx, Ry, Rz
@@ -42,7 +42,7 @@ void setup()
     pinMode(InputPinCh_3, INPUT_PULLUP);
     pinMode(InputPinCh_4, INPUT_PULLUP);
 
-    Joystick.begin();
+    Joystick.begin(false);   // initAutoSendState not set
 
     Joystick.setXAxisRange(AxisUpperBound, AxisLowerBound);
     Joystick.setYAxisRange(AxisUpperBound, AxisLowerBound);
@@ -64,6 +64,8 @@ void loop()
     Joystick.setYAxis(RcChannel_Y.Get());
     Joystick.setRxAxis(RcChannel_Rx.Get());
     Joystick.setRyAxis(RcChannel_Ry.Get());
+
+    Joystick.sendState();
 
     delay(10);
 
