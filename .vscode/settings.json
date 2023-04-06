@@ -1,0 +1,8 @@
+{
+    "C_Cpp.clang_format_fallbackStyle": "LLVM",
+    "arduino.clearOutputOnBuild": true,
+    "arduino.disableIntelliSenseAutoGen": false,
+    "arduino.logLevel": "verbose",
+    "C_Cpp.doxygen.generatedStyle": "/**",
+    "C_Cpp.clang_format_style": "file"
+}

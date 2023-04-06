@@ -16,15 +16,15 @@
             ],
             "intelliSenseMode": "gcc-x64",
             "includePath": [
-                "/Users/msf/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/cores/arduino",
-                "/Users/msf/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/variants/micro",
+                "/Users/msf/Library/Arduino15/packages/arduino/hardware/avr/1.8.6/cores/arduino",
+                "/Users/msf/Library/Arduino15/packages/arduino/hardware/avr/1.8.6/variants/micro",
                 "/Users/msf/Documents/Arduino/libraries/ArduinoJoystickLibrary-master/src",
                 "/Users/msf/Library/Arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/lib/gcc/avr/7.3.0/include",
                 "/Users/msf/Library/Arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/lib/gcc/avr/7.3.0/include-fixed",
                 "/Users/msf/Library/Arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/avr/include"
             ],
             "forcedInclude": [
-                "/Users/msf/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/cores/arduino/Arduino.h"
+                "/Users/msf/Library/Arduino15/packages/arduino/hardware/avr/1.8.6/cores/arduino/Arduino.h"
             ],
             "cStandard": "c11",
             "cppStandard": "c++11",
@@ -536,21 +536,20 @@
                 "__ATOMIC_RELEASE=3",
                 "__BUILTIN_AVR_FMUL=1",
                 "USBCON"
-            ],
-            "configurationProvider": "ms-vscode.cmake-tools"
+            ]
         },
         {
             "name": "Mac",
+            "compilerPath": "/usr/bin/clang",
+            "compilerArgs": [],
+            "intelliSenseMode": "",
             "includePath": [
                 "${workspaceFolder}/**"
             ],
-            "defines": [],
-            "macFrameworkPath": [
-                "/Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk/System/Library/Frameworks"
-            ],
-            "compilerPath": "/usr/bin/clang",
+            "forcedInclude": [],
             "cStandard": "c17",
-            "cppStandard": "c++17"
+            "cppStandard": "c++17",
+            "defines": []
         }
     ]
 }
