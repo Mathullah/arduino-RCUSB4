@@ -23,13 +23,11 @@ void RcPwm::Isr(uint8_t const Input, uint32_t const TimeStamp)
     if (static_cast<bool>(Input)) // capture positive edge
     {
         m_PositiveEdge = Time;
-    }
-    else if (Time > m_PositiveEdge) // capture negative edge
+    } else if (Time > m_PositiveEdge) // capture negative edge
     {
-        m_Value = (m_Value + (Time - m_PositiveEdge)) / 2;
+        m_Value               = (m_Value + (Time - m_PositiveEdge)) / 2;
         m_NewValueIsAvailable = true;
-    }
-    else
+    } else
     {
         // nothing to do.
     }
@@ -37,14 +35,14 @@ void RcPwm::Isr(uint8_t const Input, uint32_t const TimeStamp)
 
 uint16_t RcPwm::Get()
 {
-    bool IsAvailable{};
+    bool     IsAvailable{};
     uint16_t Pulse{};
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
     {
-        IsAvailable = m_NewValueIsAvailable;
+        IsAvailable           = m_NewValueIsAvailable;
         m_NewValueIsAvailable = false;
-        Pulse = m_Value;
+        Pulse                 = m_Value;
     }
 
     if (IsAvailable)
