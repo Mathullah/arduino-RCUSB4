@@ -25,7 +25,7 @@ void RcPwm::Isr(uint8_t const Input, uint32_t const TimeStamp)
         m_PositiveEdge = Time;
     } else if (Time > m_PositiveEdge) // capture negative edge
     {
-        m_Value               = (m_Value + (Time - m_PositiveEdge)) / 2;
+        m_Value               = static_cast<int16_t>(Time - m_PositiveEdge);
         m_NewValueIsAvailable = true;
     } else
     {

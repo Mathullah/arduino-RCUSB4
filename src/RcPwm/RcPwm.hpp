@@ -15,7 +15,6 @@ public:
     RcPwm() :
         m_PulseTime{},
         m_PositiveEdge{},
-        m_NegativeEdge{},
         m_Value{},
         m_NewValueIsAvailable{}
     {
@@ -29,8 +28,7 @@ protected:
 private:
     uint16_t         m_PulseTime;
     volatile int32_t m_PositiveEdge;
-    volatile int32_t m_NegativeEdge;
-    volatile int32_t m_Value;
+    volatile int16_t m_Value;
     volatile bool    m_NewValueIsAvailable;
 };
 
