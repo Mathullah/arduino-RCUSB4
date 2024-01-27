@@ -16,6 +16,15 @@
 #include "RcPwm.hpp"
 #include <util/atomic.h>
 
+
+RcPwm::RcPwm() :
+    m_PulseTime{},
+    m_PositiveEdge{},
+    m_Value{},
+    m_NewValueIsAvailable{}
+{
+}
+
 void RcPwm::Isr(uint8_t const Input, uint32_t const TimeStamp)
 {
     auto const Time{static_cast<int32_t>(TimeStamp)};

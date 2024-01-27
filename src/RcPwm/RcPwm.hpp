@@ -12,13 +12,8 @@
 class RcPwm
 {
 public:
-    RcPwm() :
-        m_PulseTime{},
-        m_PositiveEdge{},
-        m_Value{},
-        m_NewValueIsAvailable{}
-    {
-    }
+    RcPwm();
+    ~RcPwm() = default;
 
     uint16_t Get();
     void     Isr(uint8_t const Input, uint32_t const TimeStamp);
