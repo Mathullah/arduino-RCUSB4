@@ -16,6 +16,55 @@
 #include "src/RcPwm/RcPwm.hpp"
 #include <Joystick.h>
 
+
+namespace matf
+{
+    class JoystickInterface
+    {
+    public:
+
+        virtual ~JoystickInterface() = default;
+
+        virtual bool Update() = 0;
+        virtual void Reset() = 0;
+
+    private:
+    
+    };
+
+    class Control : public JoystickInterface
+    {
+    public:
+        Control();
+        bool Update() final;
+        void Reset() final;
+
+    private:
+        bool m_State;
+    
+    };
+
+    Control::Control() :
+        JoystickInterface{},
+        m_State{true}
+    {
+
+    }
+
+    bool Control::Update()
+    {
+        return m_State;
+    }
+
+    void Control::Reset()
+    {
+        m_State = false;
+    }
+
+
+};
+
+
 static constexpr uint8_t InputPinCh_1{3};
 static constexpr uint8_t InputPinCh_2{2};
 static constexpr uint8_t InputPinCh_3{0};
@@ -35,6 +84,8 @@ RcPwm RcChannel_X;
 RcPwm RcChannel_Y;
 RcPwm RcChannel_Rx;
 RcPwm RcChannel_Ry;
+
+matf::Control ControlObject{};
 
 void setup()
 {
@@ -66,7 +117,13 @@ void loop()
     Joystick.setRxAxis(RcChannel_Rx.Get());
     Joystick.setRyAxis(RcChannel_Ry.Get());
 
-    Joystick.sendState();
+
+    if (ControlObject.Update())
+    {
+        Joystick.sendState();
+
+        ControlObject.Reset();
+    }
 
     delay(10);
 }
