@@ -29,7 +29,7 @@ void RcPwm::Isr(uint8_t const Input, uint32_t const TimeStamp)
 {
     auto const Time{static_cast<int32_t>(TimeStamp)};
 
-    if (static_cast<bool>(Input)) // capture positive edge
+    if (Input > 0U) // capture positive edge
     {
         m_PositiveEdge = Time;
     } else if (Time > m_PositiveEdge) // capture negative edge
@@ -56,7 +56,7 @@ uint16_t RcPwm::Get()
 
     if (IsAvailable)
     {
-        m_PulseTime = static_cast<uint16_t>((m_PulseTime + Pulse) / 2);
+        m_PulseTime = static_cast<uint16_t>((m_PulseTime + Pulse) >> 1U);
     }
 
     return m_PulseTime;
